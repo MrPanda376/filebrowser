@@ -29,25 +29,41 @@ var (
 	userClients     = make(map[string][]chan EventMessage)
 	sourceClientsMu sync.RWMutex
 	sourceClients   = make(map[string]map[chan EventMessage]struct{})
+
+	shutdownChan chan struct{}
+	handlersWg   sync.WaitGroup
+	startOnce    sync.Once
+	shutdownOnce sync.Once
 )
 
 func init() {
-	go handleUserEvents()
-	go handleSourceUpdates() // Add this
+	startEventHandlers()
+}
 
+func startEventHandlers() {
+	shutdownChan = make(chan struct{})
+	handlersWg.Add(2)
+	go handleUserEvents()
+	go handleSourceUpdates()
 }
 
 func handleUserEvents() {
-	for ue := range userEventChan {
-		for _, user := range ue.users {
-			userClientsMu.RLock()
-			conns := userClients[user]
-			userClientsMu.RUnlock()
+	defer handlersWg.Done()
+	for {
+		select {
+		case <-shutdownChan:
+			return
+		case ue := <-userEventChan:
+			for _, user := range ue.users {
+				userClientsMu.RLock()
+				conns := userClients[user]
+				userClientsMu.RUnlock()
 
-			for _, ch := range conns {
-				select {
-				case ch <- ue.event:
-				default:
+				for _, ch := range conns {
+					select {
+					case ch <- ue.event:
+					default:
+					}
 				}
 			}
 		}
@@ -133,30 +149,36 @@ func DebouncedBroadcast(eventType, message string) {
 }
 
 func handleSourceUpdates() {
-	for update := range sourceUpdateChan {
-		sourceClientsMu.RLock()
-		clients := sourceClients[update.source]
-		clientCount := len(clients)
-		sourceClientsMu.RUnlock()
+	defer handlersWg.Done()
+	for {
+		select {
+		case <-shutdownChan:
+			return
+		case update := <-sourceUpdateChan:
+			sourceClientsMu.RLock()
+			clients := sourceClients[update.source]
+			clientCount := len(clients)
+			sourceClientsMu.RUnlock()
 
-		if clientCount == 0 {
-			// No clients registered for this source - this is normal if no one is connected
-			continue
-		}
-
-		sentCount := 0
-		for ch := range clients {
-			select {
-			case ch <- update.event:
-				sentCount++
-			default:
-				// Channel full, message dropped
+			if clientCount == 0 {
+				// No clients registered for this source - this is normal if no one is connected
+				continue
 			}
+
+			sentCount := 0
+			for ch := range clients {
+				select {
+				case ch <- update.event:
+					sentCount++
+				default:
+					// Channel full, message dropped
+				}
+			}
+			// Log if we have clients but couldn't send to all
+			//if sentCount < clientCount {
+			//	// Some messages were dropped due to full channels
+			//}
 		}
-		// Log if we have clients but couldn't send to all
-		//if sentCount < clientCount {
-		//	// Some messages were dropped due to full channels
-		//}
 	}
 }
 
@@ -179,4 +201,10 @@ func Shutdown() {
 		}
 		delete(userClients, username)
 	}
+
+	// Signal the event handlers to stop and wait for them
+	shutdownOnce.Do(func() {
+		close(shutdownChan)
+		handlersWg.Wait()
+	})
 }
