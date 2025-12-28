@@ -176,4 +176,3 @@ func TestDeleteMetadata_DirectoryFromParentFolder(t *testing.T) {
 		}
 	}
 }
-

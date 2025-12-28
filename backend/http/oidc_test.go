@@ -19,9 +19,9 @@ func TestUserInfoUnmarshaller(t *testing.T) {
 			groupsClaim: "groups",
 			expected: userInfo{
 				Claims: map[string]interface{}{
-					"name": "John", 
-					"email": "john@example.com",
-					"groups": []interface{}{"admin","users"},
+					"name":   "John",
+					"email":  "john@example.com",
+					"groups": []interface{}{"admin", "users"},
 				},
 				Groups: []string{"admin", "users"},
 			},
@@ -32,9 +32,9 @@ func TestUserInfoUnmarshaller(t *testing.T) {
 			groupsClaim: "roles",
 			expected: userInfo{
 				Claims: map[string]interface{}{
-					"name": "Jane", 
+					"name":  "Jane",
 					"email": "jane@example.com",
-					"roles": []interface{}{"admin","users"},
+					"roles": []interface{}{"admin", "users"},
 				},
 				Groups: []string{"admin", "users"},
 			},
@@ -45,8 +45,8 @@ func TestUserInfoUnmarshaller(t *testing.T) {
 			groupsClaim: "groups",
 			expected: userInfo{
 				Claims: map[string]interface{}{
-					"name": "Bob", 
-					"email": "bob@example.com",
+					"name":   "Bob",
+					"email":  "bob@example.com",
 					"groups": "admin, users, guests",
 				},
 				Groups: []string{"admin", "users", "guests"},
@@ -58,7 +58,7 @@ func TestUserInfoUnmarshaller(t *testing.T) {
 			groupsClaim: "groups",
 			expected: userInfo{
 				Claims: map[string]interface{}{
-					"name": "Alice", 
+					"name":  "Alice",
 					"email": "alice@example.com",
 				},
 				Groups: nil,
@@ -70,8 +70,8 @@ func TestUserInfoUnmarshaller(t *testing.T) {
 			groupsClaim: "groups",
 			expected: userInfo{
 				Claims: map[string]interface{}{
-					"name": "Charlie", 
-					"email": "charlie@example.com",
+					"name":   "Charlie",
+					"email":  "charlie@example.com",
 					"groups": []interface{}{},
 				},
 				Groups: []string{},
