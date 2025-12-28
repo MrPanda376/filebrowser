@@ -146,11 +146,11 @@ func NewStorage(db *storm.DB, usersStore *users.Storage) *Storage {
 
 // ClearCache clears the access cache (useful for testing)
 func ClearCache() {
-	// Recreate the caches to clear them
-	accessCache = cache.NewCache[string](1 * time.Minute)
-	versionCache = cache.NewCache[int](1 * time.Minute)
-	permissionCache = cache.NewCache[bool](1 * time.Minute)
-	rulesCache = cache.NewCache[map[string]FrontendAccessRule](1 * time.Minute)
+	// Clear existing caches instead of recreating them to avoid goroutine leaks
+	accessCache.ClearAll()
+	versionCache.ClearAll()
+	permissionCache.ClearAll()
+	rulesCache.ClearAll()
 }
 
 // clearAllCaches clears ALL caches. This should be called whenever rules are created, updated, or deleted.
